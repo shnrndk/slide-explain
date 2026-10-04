@@ -1,0 +1,36 @@
+{
+  "name": "slide-explain-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.21.1 <23"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "katex": "0.16.22",
+    "lucide-react": "0.511.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-markdown": "10.1.0",
+    "rehype-katex": "7.0.1",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2",
+    "@vitejs/plugin-react": "4.4.1",
+    "jsdom": "26.1.0",
+    "typescript": "5.8.3",
+    "vite": "6.4.3",
+    "vitest": "4.1.11"
+  }
+}

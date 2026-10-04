@@ -1,0 +1,48 @@
+import {afterEach, beforeEach, expect, it, vi} from 'vitest';
+import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {ChatDialog} from './ChatDialog';
+import {Editor} from './Editor';
+import type {Slide} from './api';
+const personal={slide_id:'s',kind:'personal' as const,body:'My existing notes',revision:1,updated_at:'today'};
+const slide:Slide={id:'s',document_id:'d',page_number:2,width:800,height:600,personal,explanation:{...personal,kind:'explanation'},detail:{...personal,kind:'detail'}};
+const reply=(data:unknown)=>Promise.resolve({ok:true,json:async()=>data} as Response);
+beforeEach(()=>{localStorage.clear();vi.stubGlobal('IntersectionObserver',class {observe(){} disconnect(){}});});
+afterEach(()=>{cleanup();vi.unstubAllGlobals();window.getSelection()?.removeAllRanges();});
+it('keeps notes readable until Edit and returns to reading after Save',async()=>{
+ vi.stubGlobal('fetch',vi.fn(()=>reply({...personal,body:'Edited notes',revision:2})));
+ render(<Editor note={personal} epoch="e" onSaved={()=>{}}/>);
+ expect(screen.queryByRole('textbox')).toBeNull();
+ fireEvent.click(screen.getByText('My existing notes'));
+ expect(screen.queryByRole('textbox')).toBeNull();
+ fireEvent.click(screen.getByLabelText('Edit personal notes'));
+ fireEvent.change(screen.getByLabelText('Personal notes'),{target:{value:'Edited notes'}});
+ fireEvent.click(screen.getByLabelText('Save personal notes'));
+ await waitFor(()=>expect(screen.queryByRole('textbox')).toBeNull());
+ expect(screen.getByText('Edited notes')).toBeTruthy();
+});
+it('submits a question and retains the saved conversation',async()=>{
+ const fetcher=vi.fn((url:unknown,options?:RequestInit)=>reply(options?.method==='POST'?{}:[{id:'t',question:'Earlier question',answer:'Earlier answer',status:'completed',error:null}]));
+ vi.stubGlobal('fetch',fetcher);
+ render(<ChatDialog slide={slide} epoch="e" reasoning="high" paused={false} onClose={()=>{}} onSaved={()=>{}}/>);
+ await screen.findByText('Earlier answer');
+ fireEvent.change(screen.getByLabelText('Your question'),{target:{value:'Why does this happen?'}});
+ fireEvent.click(screen.getByRole('button',{name:'Ask'}));
+ await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>url==='/api/slides/s/chat'&&options?.method==='POST')).toBe(true));
+ const request=fetcher.mock.calls.find(([,options])=>options?.method==='POST')!;
+ expect(JSON.parse(request[1]!.body as string)).toMatchObject({question:'Why does this happen?',epoch:'e',reasoning:'high'});
+});
+it('adds selected answer text to notes with the latest revision',async()=>{
+ const fetcher=vi.fn((url:unknown)=>reply(String(url).includes('/documents/')?{slides:[slide]}:String(url).endsWith('/notes')?personal:[{id:'t',question:'Question',answer:'Useful paragraph.',status:'completed',error:null}]));
+ vi.stubGlobal('fetch',fetcher);
+ const saved=vi.fn();
+ render(<ChatDialog slide={slide} epoch="e" reasoning="high" paused={false} onClose={()=>{}} onSaved={saved}/>);
+ const answer=await screen.findByText('Useful paragraph.');
+ const range=document.createRange();range.selectNodeContents(answer);
+ range.getBoundingClientRect=()=>({left:100,top:100,bottom:120,width:100,height:20,right:200,x:100,y:100,toJSON(){}});
+ window.getSelection()?.removeAllRanges();window.getSelection()?.addRange(range);
+ fireEvent.pointerUp(answer);
+ fireEvent.click(await screen.findByText('Add to my notes'));
+ await screen.findByText('Added to my notes');
+ expect(saved).toHaveBeenCalledOnce();
+ const request=fetcher.mock.calls.find(([url])=>url==='/api/chat/t/notes');expect(request).toBeTruthy();
+});
