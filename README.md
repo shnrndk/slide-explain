@@ -113,7 +113,7 @@ Rebuild from source with the pinned development runtimes:
 Build output is local and ad-hoc signed, not an Apple-notarized distribution. To verify the packaged backend in an isolated library:
 
 ```sh
-SLIDE_NOTES_DATA_DIR="$(mktemp -d)" 'dist/Slide Explain.app/Contents/MacOS/Slide Explain' --check
+SLIDE_EXPLAIN_DATA_DIR="$(mktemp -d)" 'dist/Slide Explain.app/Contents/MacOS/Slide Explain' --check
 ```
 
 ## Detailed explanations, appearance, and portable backups

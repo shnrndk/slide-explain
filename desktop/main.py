@@ -16,8 +16,8 @@ from backend.store import default_root
 def main():
     # A packaged smoke check exercises frozen imports, assets and service shutdown.
     if "--check" in sys.argv:
-        if not os.environ.get("SLIDE_NOTES_DATA_DIR"):
-            raise RuntimeError("Set SLIDE_NOTES_DATA_DIR to an empty temporary directory for --check.")
+        if not (os.environ.get("SLIDE_EXPLAIN_DATA_DIR") or os.environ.get("SLIDE_NOTES_DATA_DIR")):
+            raise RuntimeError("Set SLIDE_EXPLAIN_DATA_DIR to an empty temporary directory for --check.")
         backend = Backend(port=int(os.environ.get("SLIDE_NOTES_CHECK_PORT", "8001")))
         try:
             backend.start()
