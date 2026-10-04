@@ -4,14 +4,14 @@ Study a PDF with each slide on the left and an explanation on the right. Slide E
 
 ## Download and install
 
-1. Download `Slide-Explain-0.1.0-macos-arm64.zip` from the [GitHub releases page](https://github.com/shnrndk/slide-explain/releases/latest).
+1. Download `Slide-Explain-0.2.0-macos-arm64.zip` from the [GitHub releases page](https://github.com/shnrndk/slide-explain/releases/latest).
 2. Unzip it and drag **Slide Explain.app** into **Applications**.
 3. Open the app. Choose **Notebook → Configure API key…**, enter your OpenAI API key, then quit and reopen the app.
 4. Create a notebook and import a PDF. Export PowerPoint or Keynote slides to PDF before importing.
 
 **Supported desktop:** Apple Silicon Macs (M1 or newer). This release does not include Intel Mac, Windows, or Linux desktop builds. The downloaded app bundles Python, PDF rendering, and the interface, so users do not need Node, Python, or a terminal to run it.
 
-The first release is ad-hoc signed and **not Apple-notarized**. macOS may block the first launch; review [Apple’s instructions for opening an app from an unidentified developer](https://support.apple.com/en-us/102445). The ZIP and its SHA-256 checksum are published together.
+This release is ad-hoc signed and **not Apple-notarized**. macOS may block the first launch; review [Apple’s instructions for opening an app from an unidentified developer](https://support.apple.com/en-us/102445). The ZIP and its SHA-256 checksum are published together.
 
 Reading, importing, editing, and backups work offline after installation. Generating explanations, detailed answers, and chat replies requires internet and access to the configured model. The default is `gpt-6-luna` with high reasoning; medium and extra high settings are available. Model availability depends on your OpenAI account.
 
@@ -54,7 +54,7 @@ Configure your key through the app’s **Notebook** menu. No `.env` file, API ke
 This builds the app, runs a packaged smoke check with an empty temporary library, verifies the signature, and writes:
 
 ```text
-dist/Slide-Explain-0.1.0-macos-arm64.zip
+dist/Slide-Explain-0.2.0-macos-arm64.zip
 dist/SHA256SUMS.txt
 ```
 
@@ -71,7 +71,7 @@ Run that command in the folder containing both the ZIP and `SHA256SUMS.txt`. Ad-
 - Import PDFs up to 100 MB / 500 pages. Password-protected PDFs must be unlocked first.
 - Explain all, selected, or missing slides. The queue runs at most two AI requests together; pause, cancel, and retry controls are available.
 - Use **Reading mode** for a focused view and the moon/sun button for dark mode.
-- Use **Explain in detail** for a separate saved explanation. The small speech bubble opens a saved chat about the current slide.
+- Use the small **↗** button for a separate saved long explanation. The small speech bubble opens a saved chat about the current slide.
 - Select useful text in a chat reply and choose **Add to my notes**. Personal notes open for reading; choose **Edit**, then **Save** to change them.
 - Select saved explanation or note text to highlight it in yellow, green, blue, or pink, or underline it. Markings are saved locally.
 - Edit explanations using the pencil button. Markdown, code blocks, and mathematical notation are supported. Autosave, pending draft recovery, conflict checks, and history protect edits.
@@ -126,7 +126,7 @@ For optional local browser development, copy `.env.example` to `.env`, set your 
 - `scripts/package-desktop.sh`: verifies and packages a release ZIP.
 - `tests/`: integration tests using generated PDFs and mocked API responses.
 
-Version 0.1.0 is a single-user local desktop app with PDF imports. Cloud accounts, synchronization, handwriting, and drawing on slide images are outside this release.
+Version 0.2.0 is a single-user local desktop app with PDF imports. Cloud accounts, synchronization, handwriting, and drawing on slide images are outside this release.
 
 ![Slide beside its editable explanation](docs/preview.jpg)
 

@@ -1,8 +1,10 @@
 # Only explicitly listed runtime assets enter the app: never .env or user data.
 from pathlib import Path
+import tomllib
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 root = Path(SPECPATH).parent
+release_version = tomllib.loads((root / 'pyproject.toml').read_text())['project']['version']
 analysis = Analysis(
     [str(root / 'desktop/main.py')], pathex=[str(root)],
     binaries=[],
@@ -16,7 +18,7 @@ exe = EXE(pyz, analysis.scripts, [], exclude_binaries=True, name='Slide Explain'
     console=False, target_arch='arm64', codesign_identity=None)
 collection = COLLECT(exe, analysis.binaries, analysis.datas, name='Slide Explain')
 app = BUNDLE(collection, name='Slide Explain.app', icon=str(root / 'desktop/icon.icns'),
-    bundle_identifier='com.slidenotes.desktop', version='0.1.0', info_plist={
+    bundle_identifier='com.slidenotes.desktop', version=release_version, info_plist={
         'NSHighResolutionCapable': True,
         'NSAppTransportSecurity': {'NSAllowsLocalNetworking': True},
         'NSHumanReadableCopyright': 'Slide Explain',
