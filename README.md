@@ -131,3 +131,11 @@ Version 0.1.0 is a single-user local desktop app with PDF imports. Cloud account
 ![Slide beside its editable explanation](docs/preview.jpg)
 
 The preview uses a generated test PDF and a manually entered sample explanation.
+
+## Explanation length
+
+Choose **Brief**, **Medium**, or **Long** in the document toolbar. Brief is the default and preserves essential definitions, conditions, formulas, and caveats. Medium uses the original balanced style. Length is separate from reasoning effort and applies to new generation requests. Existing explanations stay as saved.
+
+The small **↗** button beside an explanation opens its saved long preview (and generates one if needed). Choose **Use for this slide** to replace the main explanation. Earlier text and its markings remain recoverable through history; personal notes are unchanged. Markings on the accepted long explanation are copied to the main view. Save any pending edits first.
+
+Markdown supports headings, lists, blockquotes, tables, inline code, fenced code blocks with a language label and Copy button, and math. Highlights and underlines are included in backup archives and restored with their exact text.

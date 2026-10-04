@@ -193,8 +193,10 @@ def validate_archive(archive_path: Path, target: Path):
                 or db.execute("PRAGMA foreign_key_check").fetchall()
             ):
                 raise ValueError("Backup database integrity check failed.")
-            if db.execute("PRAGMA user_version").fetchone()[0] not in (1, 2, 3, 4):
+            if db.execute("PRAGMA user_version").fetchone()[0] not in (1, 2, 3, 4, 5):
                 raise ValueError("Backup requires a different version of Slide Explain.")
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 5:
+                db.execute("SELECT length FROM jobs LIMIT 0")
             required = {
                 "schema_migrations",
                 "notebooks",

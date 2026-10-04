@@ -80,6 +80,7 @@ export default function App() {
   const [notebookId, setNotebookId] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [explanationLength, setExplanationLength] = useState(() => { try { return localStorage.getItem('slide-explain:length') || 'brief'; } catch { return 'brief'; } });
   const [reasoning, setReasoning] = useState<Reasoning>("high");
   const [showSettings, setShowSettings] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
@@ -248,7 +249,7 @@ export default function App() {
     try {
       const result = await api<{ job_ids: string[] }>(
         `/documents/${doc.id}/generate`,
-        json("POST", { mode, slide_ids: ids || [...selected], reasoning, kind }),
+        json("POST", { mode, slide_ids: ids || [...selected], reasoning, kind, length: kind === "detail" ? "long" : explanationLength }),
       );
       setToast(
         result.job_ids.length
@@ -627,6 +628,7 @@ export default function App() {
                 </div>
               </div>
               <div className="generation-controls">
+                <label className="reasoning-control">Length <select aria-label="Explanation length" value={explanationLength} onChange={e=>{setExplanationLength(e.target.value);try{localStorage.setItem('slide-explain:length',e.target.value);}catch{}}}><option value="brief">Brief</option><option value="medium">Medium</option><option value="long">Long</option></select></label>
                 <label className="reasoning-control">
                   <span>Reasoning</span>
                   <select

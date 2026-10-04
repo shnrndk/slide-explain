@@ -72,7 +72,7 @@ class Backend:
     def start(self):
         existing = existing_backend(self.root, self.url)
         if existing:
-            if existing.get("api_version", 1) < 5:
+            if existing.get("api_version", 1) < 6:
                 raise RuntimeError("An older Slide Explain backend is running. Let current explanations finish, then restart its terminal or app before opening this version.")
             return
         with socket.socket() as probe:

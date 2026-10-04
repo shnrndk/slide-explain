@@ -1,12 +1,25 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Sparkles, Loader2, RotateCcw } from "lucide-react";
 import { Editor } from "./Editor";
-import type { Slide, Job } from "./api";
+import { api, json, type Slide, type Job } from "./api";
 
 export function DetailDialog({slide, epoch, job, paused, busy, onClose, onGenerate, onSaved}: {
   slide: Slide; epoch: string; job?: Job; paused: boolean; busy: boolean;
   onClose: () => void; onGenerate: () => void; onSaved: () => void;
 }) {
+  const [accepting,setAccepting]=useState(false);
+  const [error,setError]=useState('');
+  async function accept(){
+    setAccepting(true);setError('');
+    try{
+      for(const kind of ['explanation','detail'] as const){
+        const draft=JSON.parse(localStorage.getItem(`slide-notes:draft:${epoch}:${slide.id}:${kind}`)||'null');
+        if(draft && draft.body!==slide[kind].body)throw new Error('Save your pending explanation edits first.');
+      }
+      await api(`/slides/${slide.id}/use-detail`,json('POST',{epoch,revision:slide.explanation.revision,detail_revision:slide.detail.revision}));
+      onSaved();onClose();
+    }catch(e){setError((e as Error).message);}finally{setAccepting(false);}
+  }
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
@@ -25,15 +38,17 @@ export function DetailDialog({slide, epoch, job, paused, busy, onClose, onGenera
         if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
       }
     }}>
-      <div className="detail-titlebar"><div><small>SLIDE {slide.page_number}</small><h2 id="detail-title">A closer look</h2></div><button className="icon-button" aria-label="Close detailed explanation" onClick={onClose}><X size={20}/></button></div>
+      <div className="detail-titlebar"><div><small>SLIDE {slide.page_number}</small><h2 id="detail-title">Long explanation</h2></div><button className="icon-button" aria-label="Close detailed explanation" onClick={onClose}><X size={20}/></button></div>
       <p className="detail-description">A deeper, step-by-step explanation. Saved with this slide and included in backups.</p>
       <div className="detail-actions">
         <button className="button primary" disabled={active || busy} onClick={onGenerate}>
           {active ? <Loader2 size={16} className="spin"/> : saved ? <RotateCcw size={16}/> : <Sparkles size={16}/>}
           {job?.status === "running" ? "Explaining in detail…" : job?.status === "queued" ? paused ? "Queue paused" : "Queued…" : saved ? "Regenerate details" : job ? "Retry detailed explanation" : "Explain in detail"}
         </button>
+        {saved && <button className="text-button" disabled={active||busy||accepting} onClick={()=>void accept()}>Use for this slide</button>}
         {active && <span role="status">You can close this view while it works.</span>}
       </div>
+      {error && <p role="alert" className="inline-error">{error}</p>}
       {job?.error && <p role="status" className="inline-error">{job.error}</p>}
       {paused && job?.status === "queued" && <p>Resume generation from the document toolbar to continue.</p>}
       {slide.detail && (saved || !active) && <Editor key={`${slide.id}:detail:${epoch}`} note={slide.detail} epoch={epoch} onSaved={onSaved}/>}

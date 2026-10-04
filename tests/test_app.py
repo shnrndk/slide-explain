@@ -497,7 +497,7 @@ def test_v1_migration_preserves_notes_and_jobs(tmp_path):
     assert store.note('s', 'personal')['revision'] == 4
     assert store.note('s', 'detail')['body'] == ''
     assert store.one('SELECT kind FROM jobs')['kind'] == 'explanation'
-    assert store.one('PRAGMA user_version')['user_version'] == 4
+    assert store.one('PRAGMA user_version')['user_version'] == 5
 
 
 def test_legacy_backup_restores_and_migrates(client, imported, tmp_path):
@@ -534,7 +534,7 @@ def test_legacy_backup_restores_and_migrates(client, imported, tmp_path):
     restore_backup(target,legacy)
     assert target.note(slide['id'],'personal')['body']=='Legacy personal note'
     assert target.note(slide['id'],'detail')['revision']==0
-    assert target.one('PRAGMA user_version')['user_version']==4
+    assert target.one('PRAGMA user_version')['user_version']==5
 
 
 def test_details_take_next_slot_before_bulk_without_interrupting(client, imported):
@@ -681,3 +681,30 @@ def test_rebrand_keeps_existing_library_and_accepts_new_directory_setting(tmp_pa
     assert default_root()==tmp_path/'legacy-override'
     monkeypatch.setenv('SLIDE_EXPLAIN_DATA_DIR', str(tmp_path/'new-override'))
     assert default_root()==tmp_path/'new-override'
+
+
+def test_lengths_and_accept_long_preserve_history_and_marks(client, imported, tmp_path):
+    _,doc=imported
+    slide=doc['slides'][0];store=client.app.state.store
+    mock=fake_client();gen=Generation(store,mock)
+    job_id=gen.enqueue(doc['id'],[slide['id']],'selected','high')[0]
+    assert store.one('SELECT length FROM jobs WHERE id=?',(job_id,))['length']=='brief'
+    asyncio.run(gen.run_job(gen.claim()))
+    assert '80–180' in mock.responses.create.call_args.kwargs['instructions']
+    edit(client,doc,slide,kind='detail',body='Important long explanation')
+    mark={'revision':1,'epoch':doc['epoch'],'start':0,'end':9,'quote':'Important','style':'highlight','color':'pink'}
+    client.post(f"/api/slides/{slide['id']}/notes/detail/annotations",json=mark).raise_for_status()
+    payload={'epoch':doc['epoch'],'revision':1,'detail_revision':1}
+    result=client.post(f"/api/slides/{slide['id']}/use-detail",json=payload)
+    result.raise_for_status()
+    assert result.json()['body']=='Important long explanation'
+    assert store.note(slide['id'],'personal')['body']==''
+    assert len(store.rows("SELECT * FROM note_versions WHERE kind='explanation'"))==2
+    assert client.post(f"/api/slides/{slide['id']}/use-detail",json=payload).status_code==409
+    clean=Store(tmp_path/'accepted-restore');restore_backup(clean,create_backup(store))
+    assert clean.note(slide['id'],'explanation')['body']=='Important long explanation'
+    assert clean.one("SELECT quote,color FROM annotations WHERE kind='explanation'")=={'quote':'Important','color':'pink'}
+    for length,target in [('medium','200–500'),('long','600–1000')]:
+        gen.enqueue(doc['id'],[slide['id']],'selected','high',length=length)
+        asyncio.run(gen.run_job(gen.claim()))
+        assert target in mock.responses.create.call_args.kwargs['instructions']

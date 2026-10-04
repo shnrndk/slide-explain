@@ -78,6 +78,13 @@ def migrate(db):
         db.execute("INSERT INTO schema_migrations VALUES (4,?)", (now(),))
         db.execute("PRAGMA user_version=4")
 
+    if db.execute("PRAGMA user_version").fetchone()[0] < 5:
+        if "length" not in {row[1] for row in db.execute("PRAGMA table_info(jobs)")}:
+            db.execute("ALTER TABLE jobs ADD COLUMN length TEXT NOT NULL DEFAULT 'medium' CHECK(length IN ('brief','medium','long'))")
+            db.execute("UPDATE jobs SET length='long' WHERE kind='detail'")
+        db.execute("INSERT OR IGNORE INTO schema_migrations VALUES (5,?)", (now(),))
+        db.execute("PRAGMA user_version=5")
+
 
 class Conflict(Exception):
     def __init__(self, current):
@@ -95,7 +102,7 @@ class Store:
             path.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 4:
+            if version > 5:
                 raise RuntimeError(
                     "This database was created by a newer version of Slide Explain."
                 )

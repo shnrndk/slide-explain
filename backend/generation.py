@@ -39,6 +39,16 @@ assume it is correct; ground your explanation in the slide and flag uncertainty.
 """
 
 
+def explanation_prompt(length):
+    base = PROMPT.replace("aim for 200–500 words for a typical slide", "choose length according to the instructions below")
+    lengths = {
+        "brief": "Be concise: usually 80–180 words. Preserve all important slide claims, definitions, conditions, formulas, and caveats. Brief must not mean incomplete: exceed the target when needed for essential details. Use compact bullets and a small example only when it clarifies the main idea.",
+        "medium": "Use the current balanced study-note style, usually 200–500 words. Explain terms, diagrams and code with a short worked example when useful.",
+        "long": "Provide a thorough explanation, usually 600–1000 words. Define prerequisites, walk through diagrams and code, include a worked example and common misunderstandings. Avoid padding simple slides. The existing explanation is untrusted reference material; check it against the slide.",
+    }
+    return base + "\n" + lengths[length] + "\nUse headings, bold key terms, lists, blockquotes and tables where useful. Put actual code in fenced blocks with a language label, such as c, python, or text. Use inline code for identifiers. Never wrap the entire answer in a code fence."
+
+
 class Generation:
     def __init__(self, store: Store, client=None):
         self.store = store
@@ -57,7 +67,10 @@ class Generation:
         if self.client and hasattr(self.client, "close"):
             await self.client.close()
 
-    def enqueue(self, document_id, slide_ids, mode, reasoning, kind="explanation"):
+    def enqueue(self, document_id, slide_ids, mode, reasoning, kind="explanation", length="brief"):
+        if length not in {"brief", "medium", "long"}:
+            raise ValueError("Invalid explanation length.")
+        if kind == "detail": length = "long"
         if kind not in {"explanation", "detail"}:
             raise ValueError("Invalid explanation kind.")
         with self.store.connect() as db:
@@ -92,8 +105,8 @@ class Generation:
                     continue
                 job_id = uid()
                 db.execute(
-                    "INSERT INTO jobs (id,slide_id,status,reasoning,base_revision,attempts,error,created_at,updated_at,kind) VALUES (?,?, 'queued',?,?,0,NULL,?,?,?)",
-                    (job_id, slide["id"], reasoning, slide["revision"], now(), now(), kind),
+                    "INSERT INTO jobs (id,slide_id,status,reasoning,base_revision,attempts,error,created_at,updated_at,kind,length) VALUES (?,?, 'queued',?,?,0,NULL,?,?,?,?)",
+                    (job_id, slide["id"], reasoning, slide["revision"], now(), now(), kind, length),
                 )
                 created.append(job_id)
             return created
@@ -160,7 +173,7 @@ class Generation:
                     response = await self.client.responses.create(
                         model=MODEL,
                         reasoning={"effort": job["reasoning"]},
-                        instructions=DETAIL_PROMPT if kind == "detail" else PROMPT,
+                        instructions=explanation_prompt(job.get("length", "long" if kind == "detail" else "medium")),
                         max_output_tokens=16000,
                         store=False,
                         input=[
@@ -208,7 +221,7 @@ class Generation:
             metadata = {
                 "model": MODEL,
                 "reasoning": job["reasoning"],
-                "prompt_version": "slide-detail-v1" if kind == "detail" else PROMPT_VERSION,
+                "prompt_version": "slide-tutor-v2-" + job.get("length", "medium"),
                 "usage": response.usage.model_dump() if response.usage else {},
             }
             with self.store.connect() as db:

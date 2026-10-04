@@ -254,7 +254,7 @@ export function Editor({
         <span>{note.kind === "personal" ? "MY NOTES" : note.kind === "detail" ? "DETAILED EXPLANATION" : "EXPLANATION"}</span>
         <div className="note-tools">
           {onChat && <button className="chat-trigger" aria-label="Ask about this slide" title="Ask about this slide" onClick={onChat}><MessageCircle size={15}/></button>}
-          {onDetails && <button className="detail-button" onClick={onDetails} title="Open a saved, more detailed explanation">Explain in detail</button>}
+          {onDetails && <button className="chat-trigger" onClick={onDetails} title="Preview long explanation" aria-label="Preview long explanation">↗</button>}
           <span className={`save-state ${state}`} title={message}>
             {state === "saved" ? (
               <Check size={12} />

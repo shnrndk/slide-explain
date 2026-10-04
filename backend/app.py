@@ -36,6 +36,7 @@ class NoteEdit(BaseModel):
 
 
 class Generate(BaseModel):
+    length: Literal["brief", "medium", "long"] = "brief"
     kind: Literal["explanation", "detail"] = "explanation"
     mode: Literal["all", "selected", "missing", "failed"] = "missing"
     slide_ids: list[str] = Field(default_factory=list, max_length=500)
@@ -70,6 +71,12 @@ class ChatClip(BaseModel):
     text: str = Field(min_length=1,max_length=100_000)
     revision: int = Field(ge=0)
     epoch: str
+
+
+class AcceptDetail(BaseModel):
+    epoch: str
+    revision: int = Field(ge=0)
+    detail_revision: int = Field(ge=0)
 
 
 class RestoreVersion(BaseModel):
@@ -209,7 +216,7 @@ def create_app(data_dir=None, client=None, workers=True):
     @app.get("/api/status")
     def status():
         return {
-            "api_version": 5,
+            "api_version": 6,
             "active_chats": store().one("SELECT COUNT(*) AS count FROM chat_turns WHERE status IN ('queued','running')")["count"],
             "api_key_configured": bool(os.environ.get("OPENAI_API_KEY") or client),
             "model": MODEL,
@@ -421,6 +428,26 @@ def create_app(data_dir=None, client=None, workers=True):
                     db.execute("INSERT INTO annotations VALUES (?,?,?,?,?,?,?,?,?,?)",(uid(),turn["slide_id"],"personal",new_hash,mark["start_offset"],mark["end_offset"],mark["quote"],mark["style"],mark["color"],now()))
                 return dict(db.execute("SELECT * FROM notes WHERE slide_id=? AND kind='personal'",(turn["slide_id"],)).fetchone())
 
+    @app.post("/api/slides/{slide_id}/use-detail")
+    def use_detail(slide_id: str, body: AcceptDetail):
+        with store().lock:
+            epoch(body.epoch)
+            detail = store().note(slide_id, "detail")
+            if detail["revision"] != body.detail_revision:
+                raise HTTPException(409, "The long explanation changed. Reopen it before replacing.")
+            if not detail["body"].strip(): raise HTTPException(400, "Generate a long explanation first.")
+            with store().connect() as db:
+                current = dict(db.execute("SELECT * FROM notes WHERE slide_id=? AND kind='explanation'", (slide_id,)).fetchone())
+                if current["revision"] != body.revision: raise Conflict(current)
+                if current["body"] != detail["body"]:
+                    store().add_version(db, slide_id, "explanation", detail["body"], "accepted_long")
+                    db.execute("UPDATE notes SET body=?,revision=revision+1,updated_at=? WHERE slide_id=? AND kind='explanation'", (detail["body"],now(),slide_id))
+                digest = hashlib.sha256(detail["body"].encode()).hexdigest()
+                for mark in db.execute("SELECT * FROM annotations WHERE slide_id=? AND kind='detail' AND body_hash=?", (slide_id,digest)).fetchall():
+                    if not db.execute("SELECT id FROM annotations WHERE slide_id=? AND kind='explanation' AND body_hash=? AND start_offset=? AND end_offset=? AND style=? AND color=?", (slide_id,digest,mark["start_offset"],mark["end_offset"],mark["style"],mark["color"])).fetchone():
+                        db.execute("INSERT INTO annotations VALUES (?,?,?,?,?,?,?,?,?,?)", (uid(),slide_id,"explanation",digest,mark["start_offset"],mark["end_offset"],mark["quote"],mark["style"],mark["color"],now()))
+            return store().note(slide_id, "explanation")
+
     @app.get("/api/slides/{slide_id}/notes/{kind}/history")
     def history(slide_id: str, kind: Literal["explanation", "personal", "detail"]):
         return store().rows(
@@ -449,7 +476,7 @@ def create_app(data_dir=None, client=None, workers=True):
             )
         return {
             "job_ids": app.state.generation.enqueue(
-                document_id, body.slide_ids, body.mode, body.reasoning, body.kind
+                document_id, body.slide_ids, body.mode, body.reasoning, body.kind, body.length
             )
         }
 

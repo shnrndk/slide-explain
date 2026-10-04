@@ -46,3 +46,19 @@ it('adds selected answer text to notes with the latest revision',async()=>{
  expect(saved).toHaveBeenCalledOnce();
  const request=fetcher.mock.calls.find(([url])=>url==='/api/chat/t/notes');expect(request).toBeTruthy();
 });
+
+import {DetailDialog} from './DetailDialog';
+import {RichText} from './RichText';
+it('accepts a long preview using both note revisions',async()=>{
+ const fetcher=vi.fn((_url:unknown,_options?:RequestInit)=>reply(personal));vi.stubGlobal('fetch',fetcher);
+ const closed=vi.fn();render(<DetailDialog slide={slide} epoch="e" paused={false} busy={false} onClose={closed} onGenerate={()=>{}} onSaved={()=>{}}/>);
+ fireEvent.click(screen.getByText('Use for this slide'));
+ await waitFor(()=>expect(closed).toHaveBeenCalledOnce());
+ expect(JSON.parse(fetcher.mock.calls[0][1]!.body as string)).toMatchObject({epoch:'e',revision:1,detail_revision:1});
+});
+it('renders code blocks without adding label text to annotation offsets',()=>{
+ const {container}=render(<RichText body={'```c\nflag[0] = 1;\n```'}/>);
+ expect(container.querySelector('code')?.textContent).toBe('flag[0] = 1;\n');
+ expect(container.querySelector('.code-block-bar')?.textContent).toBe('');
+ expect(screen.getByLabelText('Copy code')).toBeTruthy();
+});
