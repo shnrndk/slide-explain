@@ -53,6 +53,7 @@ import { Editor } from "./Editor";
 import { useTheme } from "./useTheme";
 import { ChatDialog } from "./ChatDialog";
 import { DetailDialog } from "./DetailDialog";
+import { useReadingPosition } from "./useReadingPosition";
 import { useReadingMode } from "./useReadingMode";
 
 type Library = { notebooks: Notebook[]; documents: Document[] };
@@ -68,6 +69,7 @@ function date(value: string | null) {
 export default function App() {
   const { dark, toggleTheme } = useTheme();
   const themeButton = <button className="theme-toggle button subtle" onClick={toggleTheme} aria-label={dark ? "Switch to light mode" : "Switch to dark mode"} title={dark ? "Light mode" : "Dark mode"}>{dark ? <Sun size={17}/> : <Moon size={17}/>}</button>;
+  const [confirmGeneration,setConfirmGeneration] = useState<{mode:"all"|"selected"|"missing"|"failed";ids:string[];kind:"explanation"|"detail";count:number}|null>(null);
   const [chatSlide, setChatSlide] = useState<string | null>(null);
   const [detailSlide, setDetailSlide] = useState<string | null>(null);
   const [library, setLibrary] = useState<Library>({
@@ -100,10 +102,11 @@ export default function App() {
   const [lightbox, setLightbox] = useState<{ id: string; page: number } | null>(
     null,
   );
-  useEffect(() => {setDetailSlide(null);setChatSlide(null);}, [docId]);
+  useEffect(() => {setDetailSlide(null);setChatSlide(null);setConfirmGeneration(null);}, [docId]);
   const upload = useRef<HTMLInputElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const { readingMode, setReadingMode } = useReadingMode(content, docId);
+  useReadingPosition(content, doc?.id === docId ? doc : null);
   const currentId = useRef(docId);
   currentId.current = docId;
   const initialized = useRef(false);
@@ -128,7 +131,9 @@ export default function App() {
       if (!initialized.current) {
         initialized.current = true;
         setReasoning(st.reasoning);
-        const first = lib.notebooks.find((n) => !n.deleted_at);
+        const last = lib.documents.find(d=>d.id===st.last_document && !d.deleted_at && lib.notebooks.some(n=>n.id===d.notebook_id && !n.deleted_at));
+        if(last)setDocId(last.id);
+        const first = lib.notebooks.find((n) => n.id===last?.notebook_id) || lib.notebooks.find((n) => !n.deleted_at);
         if (first) {
           setNotebookId(first.id);
           setExpanded(new Set([first.id]));
@@ -243,8 +248,12 @@ export default function App() {
     mode: "all" | "selected" | "missing" | "failed",
     ids?: string[],
     kind: "explanation" | "detail" = "explanation",
+    confirmed = false,
   ) {
     if (!doc) return;
+    const targetIds=ids || [...selected];
+    const replacing=doc.slides.filter(s=>!!s[kind].body.trim() && (mode!=="selected" || targetIds.includes(s.id)) && mode!=="missing");
+    if(!confirmed && replacing.length){setConfirmGeneration({mode,ids:targetIds,kind,count:replacing.length});return;}
     setBusy("Adding slides to the queue…");
     try {
       const result = await api<{ job_ids: string[] }>(
@@ -1118,6 +1127,13 @@ export default function App() {
           if (f) void importFile(f);
         }}
       />
+      {confirmGeneration && <div className="modal-backdrop" style={{zIndex:1001}}>
+        <div className="modal" role="dialog" aria-modal="true" aria-label="Confirm regeneration">
+          <h2>Replace saved explanations?</h2>
+          <p>Generating again will replace the current {confirmGeneration.kind === 'detail' ? 'long' : ''} explanation for {confirmGeneration.count} slide{confirmGeneration.count===1?'':'s'} when it finishes. Previous text and its markings remain available in History. Personal notes stay saved.</p>
+          <div className="detail-actions"><button autoFocus className="button" onClick={()=>setConfirmGeneration(null)}>Cancel</button><button className="button primary" onClick={()=>{const request=confirmGeneration;setConfirmGeneration(null);void generate(request.mode,request.ids,request.kind,true);}}>Regenerate and replace</button></div>
+        </div>
+      </div>}
       {toast && (
         <div className="toast" role="status">
           <span>{toast}</span>

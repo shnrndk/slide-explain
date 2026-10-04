@@ -708,3 +708,26 @@ def test_lengths_and_accept_long_preserve_history_and_marks(client, imported, tm
         gen.enqueue(doc['id'],[slide['id']],'selected','high',length=length)
         asyncio.run(gen.run_job(gen.claim()))
         assert target in mock.responses.create.call_args.kwargs['instructions']
+
+
+def test_interface_entrypoint_is_never_cached(client):
+    for url in ['/', '/index.html', '/?launch=new-build']:
+        assert client.get(url).headers['cache-control'] == 'no-store'
+
+
+def test_reading_position_survives_restart_and_backup(client, imported, tmp_path):
+    _,doc=imported
+    path=f"/api/documents/{doc['id']}/reading-position"
+    assert client.get(path).json() is None
+    body={'epoch':doc['epoch'],'page':2,'fraction':0.45}
+    client.put(path,json=body).raise_for_status()
+    assert client.get(path).json()=={'page':2,'fraction':0.45}
+    assert client.get('/api/status').json()['last_document']==doc['id']
+    assert client.put(path,json={**body,'epoch':'stale'}).status_code==409
+    assert client.put(path,json={**body,'fraction':2}).status_code==422
+    assert client.put(path,json={**body,'page':499}).status_code==404
+    store=client.app.state.store
+    restarted=Store(store.root)
+    assert restarted.setting('reading:'+doc['id'])=={'page':2,'fraction':0.45}
+    restored=Store(tmp_path/'reading-restored');restore_backup(restored,create_backup(store))
+    assert restored.setting('reading:'+doc['id'])=={'page':2,'fraction':0.45}

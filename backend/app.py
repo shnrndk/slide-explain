@@ -35,6 +35,12 @@ class NoteEdit(BaseModel):
     epoch: str
 
 
+class ReadingPosition(BaseModel):
+    epoch: str
+    page: int = Field(ge=1, le=500)
+    fraction: float = Field(ge=0, le=1)
+
+
 class Generate(BaseModel):
     length: Literal["brief", "medium", "long"] = "brief"
     kind: Literal["explanation", "detail"] = "explanation"
@@ -175,7 +181,7 @@ def create_app(data_dir=None, client=None, workers=True):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Frame-Options"] = "DENY"
-        if request.url.path.startswith("/api"):
+        if request.url.path.startswith("/api") or request.url.path in {"/", "/index.html"}:
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -216,7 +222,7 @@ def create_app(data_dir=None, client=None, workers=True):
     @app.get("/api/status")
     def status():
         return {
-            "api_version": 6,
+            "api_version": 7,
             "active_chats": store().one("SELECT COUNT(*) AS count FROM chat_turns WHERE status IN ('queued','running')")["count"],
             "api_key_configured": bool(os.environ.get("OPENAI_API_KEY") or client),
             "model": MODEL,
@@ -224,6 +230,7 @@ def create_app(data_dir=None, client=None, workers=True):
             "epoch": store().setting("data_epoch"),
             "queue_paused": store().setting("queue_paused"),
             "reasoning": store().setting("reasoning"),
+            "last_document": store().setting("last_document"),
             "backup_folder": store().setting("backup_folder"),
             "last_backup": store().setting("last_backup"),
             "backup_error": store().setting("backup_error"),
@@ -295,6 +302,22 @@ def create_app(data_dir=None, client=None, workers=True):
         return import_pdf(
             store(), notebook_id, file.filename or "Untitled.pdf", content
         )
+
+    @app.get("/api/documents/{document_id}/reading-position")
+    def reading_position(document_id: str):
+        require("SELECT id FROM documents WHERE id=?", (document_id,))
+        return store().setting("reading:" + document_id, None)
+
+    @app.put("/api/documents/{document_id}/reading-position")
+    def save_reading_position(document_id: str, body: ReadingPosition):
+        with store().lock:
+            epoch(body.epoch)
+            require("SELECT id FROM slides WHERE document_id=? AND page_number=?", (document_id,body.page))
+            with store().connect() as db:
+                import json
+                for key,value in [("reading:" + document_id,{"page":body.page,"fraction":body.fraction}), ("last_document",document_id)]:
+                    db.execute("INSERT INTO settings(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key,json.dumps(value)))
+            return {"ok":True}
 
     @app.get("/api/documents/{document_id}")
     def document(document_id: str):

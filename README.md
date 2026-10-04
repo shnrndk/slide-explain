@@ -139,3 +139,9 @@ Choose **Brief**, **Medium**, or **Long** in the document toolbar. Brief is the 
 The small **↗** button beside an explanation opens its saved long preview (and generates one if needed). Choose **Use for this slide** to replace the main explanation. Earlier text and its markings remain recoverable through history; personal notes are unchanged. Markings on the accepted long explanation are copied to the main view. Save any pending edits first.
 
 Markdown supports headings, lists, blockquotes, tables, inline code, fenced code blocks with a language label and Copy button, and math. Highlights and underlines are included in backup archives and restored with their exact text.
+
+## Resume reading and regeneration confirmation
+
+Reading progress is saved per document in SQLite, including the slide and position within it. Returning to a document resumes that position; reopening the app returns to the last document. Progress is included in backups.
+
+Generating an explanation again asks for confirmation when it would replace saved text, including long previews and batch regeneration. Cancel leaves the current explanation untouched. Prior text and markings remain in History after replacement.

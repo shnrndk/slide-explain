@@ -75,6 +75,7 @@ export interface FullDocument extends Document {
   epoch: string;
 }
 export interface Status {
+  last_document?: string | null;
   api_key_configured: boolean;
   model: string;
   data_dir: string;

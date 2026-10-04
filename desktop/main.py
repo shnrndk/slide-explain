@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import sys
 import threading
+import uuid
 
 # Also supports running this entry point directly during development.
 if not getattr(sys, "frozen", False):
@@ -75,7 +76,7 @@ def main():
     webview.settings["ALLOW_FILE_URLS"] = False
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
     window = webview.create_window(
-        "Slide Explain", backend.url, width=1440, height=940,
+        "Slide Explain", backend.url + "/?launch=" + uuid.uuid4().hex, width=1440, height=940,
         min_size=(900, 600), background_color="#fafaf7", text_select=True,
     )
 
