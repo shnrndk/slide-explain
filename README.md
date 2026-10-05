@@ -54,7 +54,7 @@ Configure your key through the app’s **Notebook** menu. No `.env` file, API ke
 This builds the app, runs a packaged smoke check with an empty temporary library, verifies the signature, and writes:
 
 ```text
-dist/Slide-Explain-0.2.0-macos-arm64.zip
+dist/Slide-Explain-0.2.1-macos-arm64.zip
 dist/SHA256SUMS.txt
 ```
 
@@ -126,7 +126,7 @@ For optional local browser development, copy `.env.example` to `.env`, set your 
 - `scripts/package-desktop.sh`: verifies and packages a release ZIP.
 - `tests/`: integration tests using generated PDFs and mocked API responses.
 
-Version 0.2.0 is a single-user local desktop app with PDF imports. Cloud accounts, synchronization, handwriting, and drawing on slide images are outside this release.
+Version 0.2.1 is a single-user local desktop app with PDF imports. Cloud accounts, synchronization, handwriting, and drawing on slide images are outside this release.
 
 ![Slide beside its editable explanation](docs/preview.jpg)
 
@@ -145,3 +145,7 @@ Markdown supports headings, lists, blockquotes, tables, inline code, fenced code
 Reading progress is saved per document in SQLite, including the slide and position within it. Returning to a document resumes that position; reopening the app returns to the last document. Progress is included in backups.
 
 Generating an explanation again asks for confirmation when it would replace saved text, including long previews and batch regeneration. Cancel leaves the current explanation untouched. Prior text and markings remain in History after replacement.
+
+## Markdown in personal notes
+
+Choose **Edit** in My Notes to write Markdown: headings, **bold**, *italic*, lists, links, blockquotes, tables, fenced code blocks, and math. A live preview shows the formatted result while you write; **Hide preview** gives you more writing space. Choose **Save** to return to reading the formatted note, where text highlighting and underlining remain available. Markdown source is preserved in the database, history, and backups.

@@ -58,6 +58,7 @@ export function Editor({
   const [editing, setEditing] = useState(
     !!initial.current,
   );
+  const [personalPreview, setPersonalPreview] = useState(true);
   const [state, setState] = useState<
     "saved" | "pending" | "saving" | "error" | "conflict"
   >(
@@ -302,6 +303,11 @@ export function Editor({
         </div>
       </div>
       {editing && !readingMode ? (
+        <>
+        {note.kind === "personal" && <div className="markdown-editor-help">
+          <span>Markdown: **bold**, *italic*, - lists, `code`, $math$</span>
+          <button type="button" aria-expanded={personalPreview} onClick={() => setPersonalPreview(!personalPreview)}>{personalPreview ? "Hide preview" : "Show preview"}</button>
+        </div>}
         <textarea
           aria-label={
             note.kind === "personal" ? "Personal notes" : note.kind === "detail" ? "Detailed explanation" : "Explanation"
@@ -314,10 +320,15 @@ export function Editor({
           onBlur={() => void save()}
           placeholder={
             note.kind === "personal"
-              ? "Add a thought, a question, or something to remember…"
+              ? "Write your notes here. Markdown and math are supported."
               : "Write your explanation here. Markdown and math are supported."
           }
         />
+        {note.kind === "personal" && personalPreview && <div className="personal-markdown-preview" role="region" aria-label="Personal notes Markdown preview">
+          <span className="markdown-preview-label">PREVIEW</span>
+          {body.trim() ? <RichText body={body}/> : <p className="empty-personal-note">Start writing to preview Markdown.</p>}
+        </div>}
+        </>
       ) : body ? (
         <AnnotatedText key={`${note.slide_id}:${note.kind}:${body}`} body={body} note={note} epoch={epoch} enabled={body === note.body && state === "saved"} />
       ) : note.kind === "personal" ? <p className="empty-personal-note">Save useful chat answers here, or choose Edit to write a note.</p> : (

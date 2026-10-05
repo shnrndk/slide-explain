@@ -34,7 +34,7 @@ it('selects rendered ranges across markup with UTF-16 offsets',()=>{
   root.remove();
 });
 
-it('saves and reloads a highlight with a selection palette',async()=>{
+it.each(['explanation', 'personal'] as const)('saves and reloads a %s highlight with a selection palette',async(kind)=>{
   let saved:Annotation[]=[];
   const fetchMock=vi.fn(async(_url:string,options?:RequestInit)=>{
     if(options?.method==='POST') {
@@ -44,7 +44,7 @@ it('saves and reloads a highlight with a selection palette',async()=>{
     return {ok:true,json:async()=>saved} as Response;
   });
   vi.stubGlobal('fetch',fetchMock);
-  const note={slide_id:'s',kind:'explanation' as const,body:'Important **shared data**.',revision:1,updated_at:'today'};
+  const note={slide_id:'s',kind,body:'Important **shared data**.',revision:1,updated_at:'today'};
   const rendered=render(<AnnotatedText body={note.body} note={note} epoch="e" enabled/>);
   await waitFor(()=>expect(fetchMock).toHaveBeenCalled());
   const strong=rendered.container.querySelector('strong')!;

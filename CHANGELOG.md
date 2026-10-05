@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 — Unreleased
+
+- Added a live Markdown preview and formatting hint while editing personal notes.
+- Enlarged the note editor for multiline Markdown, code, and math. Saved notes remain selectable for highlighting and underlining.
+
 ## 0.2.0 — 2026-10-04
 
 - Added Brief, Medium, and Long explanation lengths; Brief is the default.

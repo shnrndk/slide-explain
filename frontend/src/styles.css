@@ -1239,19 +1239,30 @@ p {
   box-shadow: 0 0 0 2px #eef2e7;
 }
 .note-editor textarea.personal-input {
-  min-height: 60px;
-  height: 70px;
-  padding: 0;
-  background: transparent;
-  border-color: transparent;
-  font-size: 0.8em;
-  color: var(--ink-muted, #839472);
+  min-height: 180px;
+  height: 220px;
+  padding: 11px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--ink-strong, #56634b);
 }
 .note-editor textarea.personal-input:focus {
-  padding: 8px;
-  background: var(--surface);
   border-color: var(--ink-faint, #c3d2ae);
 }
+.markdown-editor-help {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 10px 0;
+  color: var(--ink-muted, #839472);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.markdown-editor-help button { color: var(--green); text-decoration: underline; }
+.personal-markdown-preview { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.markdown-preview-label { display: block; margin-bottom: 10px; font-size: 10px; letter-spacing: 0.12em; color: var(--ink-muted, #839472); }
 .note-editor textarea::placeholder {
   color: var(--ink-faint, #b1b9a5);
 }
