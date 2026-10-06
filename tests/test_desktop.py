@@ -32,7 +32,7 @@ def test_reuse_requires_correct_library_and_service(tmp_path, monkeypatch):
 
 
 def test_external_backend_is_not_stopped(tmp_path, monkeypatch):
-    monkeypatch.setattr('desktop.runtime.existing_backend', lambda *a: {'data_dir': str(tmp_path), 'api_version': 7})
+    monkeypatch.setattr('desktop.runtime.existing_backend', lambda *a: {'data_dir': str(tmp_path), 'api_version': 8})
     backend = Backend(tmp_path)
     backend.start()
     assert not backend.owned

@@ -70,6 +70,9 @@ def create_backup(store: Store, safety=False):
                         current = store.note(mark["slide_id"], mark["kind"])
                         if mark["body_hash"] == hashlib.sha256(current["body"].encode()).hexdigest():
                             readable.append(f"### Slide {mark['page_number']} — {mark['kind']} {mark['style']} ({mark['color']})\n\n{mark['quote']}\n")
+                if store.one("SELECT name FROM sqlite_master WHERE type='table' AND name='pdf_annotations'"):
+                    for mark in store.rows("SELECT a.*,s.page_number FROM pdf_annotations a JOIN slides s ON s.id=a.slide_id WHERE s.document_id=? ORDER BY s.page_number,a.created_at", (doc['id'],)):
+                        readable.append(f"### Slide {mark['page_number']} — PDF {mark['style']} ({mark['color']})\n\n{mark['quote']}\n")
                 if store.one("SELECT name FROM sqlite_master WHERE type='table' AND name='chat_turns'"):
                     for turn in store.rows("SELECT c.*,s.page_number FROM chat_turns c JOIN slides s ON s.id=c.slide_id WHERE s.document_id=? ORDER BY c.created_at", (doc["id"],)):
                         readable.append(f"### Slide {turn['page_number']} — Chat\n\nQuestion: {turn['question']}\n\n{turn['answer'] or turn['status']}\n")
@@ -82,7 +85,7 @@ def create_backup(store: Store, safety=False):
                 "assets/<document-id>/original.pdf: original PDFs\n"
                 "assets/<document-id>/<page>.png: slide images\n"
                 "exports/<document-id>/notes.md: readable explanations, detailed explanations and personal notes\n"
-                "notes.sqlite3: complete library, note history, settings and generation records\n"
+                "notes.sqlite3: complete library, PDF and note markings, text layers, history, settings and generation records\n"
                 "manifest.json: integrity checksums\n\n"
                 "Restore this ZIP through Settings & backups. Do not edit the archive before restoring.\n"
                 "API keys are not included.\n", encoding="utf-8")
@@ -193,7 +196,7 @@ def validate_archive(archive_path: Path, target: Path):
                 or db.execute("PRAGMA foreign_key_check").fetchall()
             ):
                 raise ValueError("Backup database integrity check failed.")
-            if db.execute("PRAGMA user_version").fetchone()[0] not in (1, 2, 3, 4, 5):
+            if db.execute("PRAGMA user_version").fetchone()[0] not in (1, 2, 3, 4, 5, 6):
                 raise ValueError("Backup requires a different version of Slide Explain.")
             if db.execute("PRAGMA user_version").fetchone()[0] >= 5:
                 db.execute("SELECT length FROM jobs LIMIT 0")
@@ -214,6 +217,10 @@ def validate_archive(archive_path: Path, target: Path):
                 required.update({"chat_turns", "chat_clips"})
                 db.execute("SELECT id,slide_id,question,answer,status,reasoning,error,metadata,created_at,updated_at FROM chat_turns LIMIT 0")
                 db.execute("SELECT id,turn_id,created_at FROM chat_clips LIMIT 0")
+            if db.execute("PRAGMA user_version").fetchone()[0] >= 6:
+                required.update({'pdf_text_layers', 'pdf_annotations'})
+                db.execute("SELECT slide_id,text,characters FROM pdf_text_layers LIMIT 0")
+                db.execute("SELECT id,slide_id,text_hash,start_offset,end_offset,quote,style,color,created_at FROM pdf_annotations LIMIT 0")
             actual = {
                 r[0]
                 for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")

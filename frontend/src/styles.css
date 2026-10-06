@@ -1022,7 +1022,7 @@ p {
   border-radius: 5px;
   box-shadow: 0 3px 7px #344d2910;
   overflow: hidden;
-  cursor: zoom-in;
+  cursor: text;
 }
 .slide-image-button img {
   display: block;
@@ -1033,6 +1033,27 @@ p {
   border-color: var(--ink-muted, #7f9e69);
   box-shadow: 0 0 0 2px #bfceb64d;
 }
+.pdf-page { position: relative; background: white; }
+.pdf-page img { user-select: none; pointer-events: none; }
+.pdf-text-layer, .pdf-mark-layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pdf-text-layer { user-select: text; -webkit-user-select: text; color: transparent; }
+.pdf-text-layer span { position: absolute; display: inline-block; white-space: pre; line-height: 1; font-family: Arial, sans-serif; color: transparent; cursor: text; }
+.pdf-text-layer span::selection { background: #4c96e54d; color: transparent; }
+.pdf-mark-layer { pointer-events: none; }
+.pdf-highlight { fill-opacity: .36; mix-blend-mode: multiply; }
+.pdf-mark-yellow { fill: #ffd84a; }
+.pdf-mark-green { fill: #6ad381; }
+.pdf-mark-blue { fill: #66b7f0; }
+.pdf-mark-pink { fill: #f28ac5; }
+.pdf-underline { stroke: #bf4653; stroke-width: 1.5px; }
+.pdf-text-status { font-size: 11px; line-height: 1.5; color: var(--ink-muted); margin: 5px 0; }
+.pdf-text-status button { text-decoration: underline; }
+.pdf-slide-controls { display: flex; justify-content: flex-end; margin: -28px 0 5px; height: 23px; }
+.slide-zoom-button { width: 23px; height: 23px; opacity: .65; background: var(--surface); }
+.slide-zoom-button:hover, .slide-zoom-button:focus-visible { opacity: 1; }
+.slide-label > span { margin-right: 28px; }
+.lightbox .pdf-page img { max-height: none; max-width: none; box-shadow: none; }
+.pdf-selection-toolbar { z-index: 1100; }
 .slide-footer {
   display: flex;
   justify-content: space-between;

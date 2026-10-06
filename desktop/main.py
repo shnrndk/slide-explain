@@ -30,9 +30,14 @@ def main():
             import io
             import httpx
             from pypdf import PdfWriter
+            from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
             buffer = io.BytesIO()
             pdf = PdfWriter()
-            pdf.add_blank_page(720, 540)
+            first = pdf.add_blank_page(720, 540)
+            font = pdf._add_object(DictionaryObject({NameObject('/Type'):NameObject('/Font'),NameObject('/Subtype'):NameObject('/Type1'),NameObject('/BaseFont'):NameObject('/Helvetica')}))
+            first[NameObject('/Resources')] = DictionaryObject({NameObject('/Font'):DictionaryObject({NameObject('/F1'):font})})
+            stream = DecodedStreamObject(); stream.set_data(b'BT /F1 24 Tf 50 400 Td (Selectable PDF text) Tj ET')
+            first[NameObject('/Contents')] = pdf._add_object(stream)
             pdf.add_blank_page(540, 720)
             pdf.write(buffer)
             with httpx.Client(base_url=backend.url, headers={"X-Slide-Notes": "1"}, trust_env=False) as client:
@@ -47,7 +52,14 @@ def main():
                 for slide in document["slides"]:
                     image = client.get(f"/api/slides/{slide['id']}/image")
                     assert image.status_code == 200 and image.content.startswith(b"\x89PNG")
-            print("Packaged backend, interface, multipage PDF import and rendering: OK", flush=True)
+                first = document['slides'][0]
+                layer = client.get(f"/api/slides/{first['id']}/text-layer", params={'epoch_id':document['epoch']}).json()
+                assert layer['selectable'] and layer['text'].startswith('Selectable PDF text')
+                mark = {'start':0,'end':10,'quote':'Selectable','text_hash':layer['text_hash'],'epoch':document['epoch'],'style':'highlight','color':'yellow'}
+                client.post(f"/api/slides/{first['id']}/pdf-annotations",json=mark).raise_for_status()
+                client.post(f"/api/slides/{first['id']}/pdf-annotations",json={**mark,'style':'underline'}).raise_for_status()
+                assert len(client.get(f"/api/slides/{first['id']}/pdf-annotations",params={'epoch_id':document['epoch']}).json())==2
+            print("Packaged backend, interface, multipage PDF import/rendering, selectable text and PDF markings: OK", flush=True)
         finally:
             backend.stop()
         return

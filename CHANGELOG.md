@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — Unreleased
+
+- Select, highlight, and underline text on PDF pages and in the enlarged slide view.
+- Moved slide enlargement to a small button beside each slide.
+- Persist PDF text positions and markings in database migration 6 and complete backups.
+- Load text layers lazily; scanned pages show an OCR hint.
+
+
 ## 0.2.1 — Unreleased
 
 - Added a live Markdown preview and formatting hint while editing personal notes.

@@ -85,6 +85,15 @@ def migrate(db):
         db.execute("INSERT OR IGNORE INTO schema_migrations VALUES (5,?)", (now(),))
         db.execute("PRAGMA user_version=5")
 
+    if db.execute("PRAGMA user_version").fetchone()[0] < 6:
+        if not db.in_transaction:
+            db.execute("BEGIN IMMEDIATE")
+        db.execute("CREATE TABLE pdf_text_layers(slide_id TEXT PRIMARY KEY REFERENCES slides(id), text TEXT NOT NULL, characters TEXT NOT NULL)")
+        db.execute("CREATE TABLE pdf_annotations(id TEXT PRIMARY KEY, slide_id TEXT NOT NULL REFERENCES pdf_text_layers(slide_id), text_hash TEXT NOT NULL, start_offset INTEGER NOT NULL CHECK(start_offset>=0), end_offset INTEGER NOT NULL CHECK(end_offset>start_offset), quote TEXT NOT NULL, style TEXT NOT NULL CHECK(style IN ('highlight','underline')), color TEXT NOT NULL CHECK(color IN ('yellow','green','blue','pink')), created_at TEXT NOT NULL)")
+        db.execute("CREATE INDEX pdf_annotations_slide ON pdf_annotations(slide_id,text_hash)")
+        db.execute("INSERT INTO schema_migrations VALUES (6,?)", (now(),))
+        db.execute("PRAGMA user_version=6")
+
 
 class Conflict(Exception):
     def __init__(self, current):
@@ -102,7 +111,7 @@ class Store:
             path.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 5:
+            if version > 6:
                 raise RuntimeError(
                     "This database was created by a newer version of Slide Explain."
                 )

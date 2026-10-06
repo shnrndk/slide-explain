@@ -1,13 +1,12 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Underline, Eraser, X } from "lucide-react";
+import { AnnotationTools } from './AnnotationTools';
 import { RichText } from "./RichText";
 import { api, json, type Note } from "./api";
 import { decorate, clearDecorations, selectedRange, type Annotation, type MarkColor } from "./annotations";
 
 const StableText = memo(RichText);
 type Pick = { start: number; end: number; quote: string; x: number; y: number };
-const colors: MarkColor[] = ["yellow", "green", "blue", "pink"];
 
 export function AnnotatedText({body, note, epoch, enabled}: {body: string; note: Note; epoch: string; enabled: boolean}) {
   const root=useRef<HTMLDivElement>(null);
@@ -95,13 +94,7 @@ export function AnnotatedText({body, note, epoch, enabled}: {body: string; note:
   return <>
     <div ref={root} className="annotatable-text" data-note-kind={note.kind}><StableText body={body}/></div>
     {pick && createPortal(<div ref={toolbar} role="toolbar" aria-label="Selected text formatting" className="selection-toolbar" style={{left:pick.x,top:pick.y,width:'min(310px, calc(100vw - 16px))'}} onPointerDown={e=>e.preventDefault()} onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();setPick(null);root.current?.focus();}}}>
-      <div className="selection-tools">
-        {colors.map(color=><button key={color} disabled={saving} className={`highlight-swatch mark-${color}`} aria-label={`Highlight ${color}`} title={`Highlight ${color}`} onClick={()=>void mark('highlight',color)}/>)}
-        <button disabled={saving} className="icon-button" aria-label="Underline selected text" title="Underline" onClick={()=>void mark('underline')}><Underline size={18}/></button>
-        <button disabled={saving} className="icon-button" aria-label="Remove markings touching selected text" title="Remove markings touching this selection" onClick={()=>void mark('highlight','yellow','clear')}><Eraser size={18}/></button>
-        <button className="icon-button" aria-label="Close text formatting" onClick={()=>setPick(null)}><X size={17}/></button>
-      </div>
-      {message && <small role="status">{message}</small>}
+      <AnnotationTools saving={saving} message={message} onMark={(style,color)=>void mark(style,color)} onClear={()=>void mark('highlight','yellow','clear')} onClose={()=>setPick(null)}/>
     </div>,document.body)}
   </>;
 }

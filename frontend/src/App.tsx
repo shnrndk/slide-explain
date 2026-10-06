@@ -1,3 +1,4 @@
+import { PdfPage } from "./PdfPage";
 import {
   useCallback,
   useEffect,
@@ -24,7 +25,6 @@ import {
   ArrowUpRight,
   Check,
   Loader2,
-  Minus,
   PanelLeftClose,
   PanelLeftOpen,
   Pause,
@@ -90,7 +90,6 @@ export default function App() {
   const [busy, setBusy] = useState("");
   const [toast, setToast] = useState("");
   const [connection, setConnection] = useState("");
-  const [zoom, setZoom] = useState(100);
   const [split, setSplit] = useState(51);
   const [nameDialog, setNameDialog] = useState<{
     kind: "new" | "notebooks" | "documents";
@@ -167,7 +166,6 @@ export default function App() {
     setDoc(null);
     setJobs([]);
     setSelected(new Set());
-    setZoom(100);
     void refresh();
     content.current?.scrollTo(0, 0);
   }, [docId, refresh]);
@@ -616,25 +614,7 @@ export default function App() {
                     : "Select slides"}
                 </label>
                 <div className="toolbar-separator" />
-                <div className="zoom-controls">
-                  <button
-                    className="icon-button"
-                    aria-label="Zoom out"
-                    disabled={zoom <= 70}
-                    onClick={() => setZoom((v) => v - 10)}
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span>{zoom}%</span>
-                  <button
-                    className="icon-button"
-                    aria-label="Zoom in"
-                    disabled={zoom >= 150}
-                    onClick={() => setZoom((v) => v + 10)}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
+
               </div>
               <div className="generation-controls">
                 <label className="reasoning-control">Length <select aria-label="Explanation length" value={explanationLength} onChange={e=>{setExplanationLength(e.target.value);try{localStorage.setItem('slide-explain:length',e.target.value);}catch{}}}><option value="brief">Brief</option><option value="medium">Medium</option><option value="long">Long</option></select></label>
@@ -797,13 +777,13 @@ export default function App() {
                 style={
                   {
                     "--split": `${split}%`,
-                    "--zoom": zoom / 100,
+                    "--zoom": 1,
                   } as CSSProperties
                 }
               >
                 <div className="column-headings">
                   <span>
-                    THE SLIDE <small>Click to take a closer look</small>
+                    THE SLIDE <small>Select text to highlight or underline</small>
                   </span>
                   <div
                     role="separator"
@@ -864,24 +844,11 @@ export default function App() {
                             )}
                           </span>
                         </div>
-                        <button
-                          className="slide-image-button"
-                          aria-label={`Enlarge slide ${slide.page_number}`}
-                          onClick={() =>
-                            setLightbox({
-                              id: slide.id,
-                              page: slide.page_number,
-                            })
-                          }
-                        >
-                          <img
-                            loading="lazy"
-                            src={`/api/slides/${slide.id}/image`}
-                            alt={`Slide ${slide.page_number}`}
-                            width={slide.width}
-                            height={slide.height}
-                          />
-                        </button>
+                        <div className="pdf-slide-controls">
+                          <button className="icon-button slide-zoom-button" aria-label={`Enlarge slide ${slide.page_number}`} title="Zoom slide" onClick={()=>setLightbox({id:slide.id,page:slide.page_number})}><Maximize2 size={14}/></button>
+                        </div>
+                        <PdfPage key={`${slide.id}:${doc.epoch}`} slide={slide} epoch={doc.epoch}/>
+
                         <div className="slide-footer">
                           <span>
                             {slide.page_number} / {doc.page_count}
@@ -1324,11 +1291,10 @@ export default function App() {
           >
             <X /> Close
           </button>
-          <img
-            src={`/api/slides/${lightbox.id}/image`}
-            alt={`Slide ${lightbox.page} enlarged`}
-            onClick={(e) => e.stopPropagation()}
-          />
+          {doc && doc.slides.find(s=>s.id===lightbox.id) && <div className="lightbox-page" style={{width:`min(100%, calc((100dvh - 145px) * ${doc.slides.find(s=>s.id===lightbox.id)!.width/doc.slides.find(s=>s.id===lightbox.id)!.height}))`}}>
+            <PdfPage key={`enlarged:${lightbox.id}:${doc.epoch}`} slide={doc.slides.find(s=>s.id===lightbox.id)!} epoch={doc.epoch}/>
+          </div>}
+
           <span>SLIDE {lightbox.page}</span>
         </div>
       )}

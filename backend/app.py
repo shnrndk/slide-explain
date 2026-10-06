@@ -17,6 +17,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
 from .store import Store, Conflict, default_root, now, uid
 from .importer import import_pdf, MAX_BYTES
+from .pdf_text import text_layer
 from .generation import Generation, MODEL
 from .backups import create_backup, restore_backup, recover_restore
 
@@ -54,8 +55,7 @@ class Settings(BaseModel):
     backup_folder: str = Field(default="", max_length=4096)
 
 
-class AnnotationEdit(BaseModel):
-    revision: int = Field(ge=0)
+class MarkSelection(BaseModel):
     epoch: str
     start: int = Field(ge=0, le=2_000_000)
     end: int = Field(gt=0, le=2_000_000)
@@ -63,6 +63,14 @@ class AnnotationEdit(BaseModel):
     style: Literal["highlight", "underline"] = "highlight"
     color: Literal["yellow", "green", "blue", "pink"] = "yellow"
     action: Literal["mark", "clear"] = "mark"
+
+
+class AnnotationEdit(MarkSelection):
+    revision: int = Field(ge=0)
+
+
+class PdfAnnotationEdit(MarkSelection):
+    text_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
 class ChatQuestion(BaseModel):
@@ -222,7 +230,7 @@ def create_app(data_dir=None, client=None, workers=True):
     @app.get("/api/status")
     def status():
         return {
-            "api_version": 7,
+            "api_version": 8,
             "active_chats": store().one("SELECT COUNT(*) AS count FROM chat_turns WHERE status IN ('queued','running')")["count"],
             "api_key_configured": bool(os.environ.get("OPENAI_API_KEY") or client),
             "model": MODEL,
@@ -345,6 +353,43 @@ def create_app(data_dir=None, client=None, workers=True):
             store().assets / slide["document_id"] / f"{slide['page_number']}.png",
             media_type="image/png",
         )
+
+    @app.get("/api/slides/{slide_id}/text-layer")
+    def pdf_text_layer(slide_id: str, epoch_id: str):
+        with store().lock:
+            epoch(epoch_id)
+            return text_layer(store(), require("SELECT * FROM slides WHERE id=?", (slide_id,)))
+
+    @app.get("/api/slides/{slide_id}/pdf-annotations")
+    def pdf_marks(slide_id: str, epoch_id: str):
+        with store().lock:
+            epoch(epoch_id)
+            require("SELECT id FROM slides WHERE id=?", (slide_id,))
+            return store().rows("SELECT * FROM pdf_annotations WHERE slide_id=? ORDER BY created_at,id", (slide_id,))
+
+    @app.post("/api/slides/{slide_id}/pdf-annotations")
+    def save_pdf_mark(slide_id: str, body: PdfAnnotationEdit):
+        with store().lock:
+            epoch(body.epoch)
+            layer = text_layer(store(), require("SELECT * FROM slides WHERE id=?", (slide_id,)))
+            if body.text_hash != layer['text_hash']:
+                raise HTTPException(409, 'This PDF changed. Reopen the document before marking it.')
+            try:
+                quote = layer['text'].encode('utf-16-le')[body.start*2:body.end*2].decode('utf-16-le')
+            except UnicodeDecodeError:
+                quote = ''
+            if body.end <= body.start or quote != body.quote or not quote.strip():
+                raise HTTPException(400, 'The selected text does not match this PDF page.')
+            boundaries = {0} | {c['end'] for c in layer['characters']}
+            if body.start not in boundaries or body.end not in boundaries:
+                raise HTTPException(400, 'Select complete PDF characters.')
+            with store().connect() as db:
+                if body.action == 'clear':
+                    db.execute("DELETE FROM pdf_annotations WHERE slide_id=? AND start_offset<? AND end_offset>?", (slide_id, body.end, body.start))
+                else:
+                    db.execute("DELETE FROM pdf_annotations WHERE slide_id=? AND start_offset=? AND end_offset=? AND style=?", (slide_id, body.start, body.end, body.style))
+                    db.execute("INSERT INTO pdf_annotations VALUES (?,?,?,?,?,?,?,?,?)", (uid(), slide_id, body.text_hash, body.start, body.end, quote, body.style, body.color, now()))
+            return store().rows("SELECT * FROM pdf_annotations WHERE slide_id=? ORDER BY created_at,id", (slide_id,))
 
     @app.get("/api/documents/{document_id}/original")
     def original(document_id: str):

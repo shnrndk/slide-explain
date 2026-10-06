@@ -54,7 +54,7 @@ Configure your key through the app’s **Notebook** menu. No `.env` file, API ke
 This builds the app, runs a packaged smoke check with an empty temporary library, verifies the signature, and writes:
 
 ```text
-dist/Slide-Explain-0.2.1-macos-arm64.zip
+dist/Slide-Explain-0.3.0-macos-arm64.zip
 dist/SHA256SUMS.txt
 ```
 
@@ -149,3 +149,7 @@ Generating an explanation again asks for confirmation when it would replace save
 ## Markdown in personal notes
 
 Choose **Edit** in My Notes to write Markdown: headings, **bold**, *italic*, lists, links, blockquotes, tables, fenced code blocks, and math. A live preview shows the formatted result while you write; **Hide preview** gives you more writing space. Choose **Save** to return to reading the formatted note, where text highlighting and underlining remain available. Markdown source is preserved in the database, history, and backups.
+
+## Mark PDF pages
+
+Select text directly on a slide to highlight it in yellow, green, blue, or pink, or underline it. The small zoom button beside each slide opens a larger selectable view. Text-based PDFs support selection; scanned pages need OCR first. PDF markings and their text positions are saved in SQLite, included in full backups and readable marking exports, and restored with the original PDFs. The original PDF is preserved unchanged.
