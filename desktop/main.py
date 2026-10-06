@@ -59,7 +59,18 @@ def main():
                 client.post(f"/api/slides/{first['id']}/pdf-annotations",json=mark).raise_for_status()
                 client.post(f"/api/slides/{first['id']}/pdf-annotations",json={**mark,'style':'underline'}).raise_for_status()
                 assert len(client.get(f"/api/slides/{first['id']}/pdf-annotations",params={'epoch_id':document['epoch']}).json())==2
-            print("Packaged backend, interface, multipage PDF import/rendering, selectable text and PDF markings: OK", flush=True)
+                from PIL import Image
+                picture=io.BytesIO();Image.new('RGB',(100,60),'green').save(picture,format='PNG')
+                attachment=client.post(f"/api/slides/{first['id']}/note-assets", data={'epoch_id':document['epoch'],'asset_id':'a'*32},files={'file':('diagram.png',picture.getvalue(),'image/png')})
+                attachment.raise_for_status();asset=attachment.json()
+                note_body=f"![Diagram]({asset['url']})\n\n```mermaid\nflowchart TD\nA-->B\n```\n\nhttps://youtu.be/dQw4w9WgXcQ"
+                client.put(f"/api/slides/{first['id']}/notes/personal",json={'epoch':document['epoch'],'body':note_body,'revision':0}).raise_for_status()
+                assert client.get(asset['url']).content.startswith(b'\x89PNG')
+                archive=client.post('/api/backups').json()
+                import zipfile
+                with zipfile.ZipFile(default_root()/'backups'/archive['name']) as backup:
+                    assert f"assets/{document['id']}/notes/{asset['id']}.png" in backup.namelist()
+            print("Packaged backend, interface, PDFs, markings, image notes and complete backup: OK", flush=True)
         finally:
             backend.stop()
         return

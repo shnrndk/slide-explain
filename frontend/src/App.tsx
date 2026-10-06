@@ -1407,7 +1407,7 @@ function SettingsDialog({
             <ShieldCheck size={18} /> A safe place for your notes
           </h3>
           <p>
-            Backup ZIPs include original PDFs, slide images, all explanations, detailed explanations, personal notes, and version history. Readable Markdown copies are included too.
+            Backup ZIPs include original PDFs, slide images, uploaded note images, diagrams, video links, explanations, personal notes, highlights and version history. Videos stay online. Readable Markdown copies are included too.
           </p>
           <div className="data-path">
             <FolderOpen size={15} />

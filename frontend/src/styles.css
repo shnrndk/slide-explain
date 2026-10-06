@@ -1054,6 +1054,27 @@ p {
 .slide-label > span { margin-right: 28px; }
 .lightbox .pdf-page img { max-height: none; max-width: none; box-shadow: none; }
 .pdf-selection-toolbar { z-index: 1100; }
+.note-media-tools { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+.note-media-tools button, .note-insert-panel button { display:inline-flex; align-items:center; gap:5px; padding:6px 9px; font-size:12px; color:var(--ink-strong, #303d37); border:1px solid var(--border); border-radius:5px; background:var(--surface); }
+.note-media-tools button:hover, .note-insert-panel button:hover { border-color:var(--ink-muted, #879087); }
+.note-insert-panel { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px; margin:8px 0; border:1px solid var(--border); border-radius:5px; font-size:12px; }
+.note-insert-panel input { flex:1; min-width:180px; padding:7px; border:1px solid var(--border); border-radius:4px; background:var(--surface); color:var(--ink-strong, #303d37); }
+.diagram-templates > span { flex-basis:100%; color:var(--ink-muted, #879087); }
+.saved-note-images img { width:48px; height:40px; object-fit:contain; }
+.note-media-status { display:block; margin:6px 0; font-size:12px; line-height:1.5; color:var(--ink-muted, #879087); }
+.note-media-status button { margin-left:8px; text-decoration:underline; }
+.prose .note-image { display:block; }
+.prose .note-image img, .note-diagram img { display:block; max-width:100%; height:auto; margin:12px auto; border-radius:5px; }
+.note-image[data-status]::after, .note-diagram[data-status]:not([data-status=""])::before { content:attr(data-status); display:block; color:var(--ink-muted, #879087); font-size:12px; line-height:1.5; }
+.note-diagram { margin:16px 0; border:1px solid var(--border); padding:12px; border-radius:6px; }
+.note-diagram img { background:white; padding:8px; box-sizing:border-box; }
+.note-diagram summary { cursor:pointer; color:var(--ink-muted, #879087); font-size:12px; }
+.note-diagram summary::after { content:attr(data-label); }
+.note-diagram pre { white-space:pre; overflow:auto; font-size:12px; }
+.note-video { display:inline-block; max-width:100%; width:100%; }
+.media-action { margin-left:8px; font-size:12px; padding:3px 6px; border:1px solid var(--border); border-radius:4px; color:var(--ink-muted, #879087); }
+.media-action::after { content:attr(data-label); }
+.note-video-player { display:block; width:100%; aspect-ratio:16 / 9; border:0; margin:10px 0; border-radius:6px; }
 .slide-footer {
   display: flex;
   justify-content: space-between;

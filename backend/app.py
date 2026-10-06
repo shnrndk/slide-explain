@@ -10,7 +10,7 @@ import tempfile
 from typing import Literal
 from urllib.parse import urlparse
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from .store import Store, Conflict, default_root, now, uid
 from .importer import import_pdf, MAX_BYTES
 from .pdf_text import text_layer
+from .note_assets import import_image, attachment_path, MAX_IMAGE_BYTES
 from .generation import Generation, MODEL
 from .backups import create_backup, restore_backup, recover_restore
 
@@ -230,7 +231,7 @@ def create_app(data_dir=None, client=None, workers=True):
     @app.get("/api/status")
     def status():
         return {
-            "api_version": 8,
+            "api_version": 9,
             "active_chats": store().one("SELECT COUNT(*) AS count FROM chat_turns WHERE status IN ('queued','running')")["count"],
             "api_key_configured": bool(os.environ.get("OPENAI_API_KEY") or client),
             "model": MODEL,
@@ -399,6 +400,29 @@ def create_app(data_dir=None, client=None, workers=True):
             media_type="application/pdf",
             filename=doc["original_name"],
         )
+
+    @app.post("/api/slides/{slide_id}/note-assets")
+    async def upload_note_image(slide_id: str, epoch_id: str = Form(...), asset_id: str = Form(...), file: UploadFile = File(...)):
+        try:
+            content = await file.read(MAX_IMAGE_BYTES + 1)
+            with store().lock:
+                epoch(epoch_id)
+                asset = import_image(store(), slide_id, asset_id, file.filename or 'Image', content)
+                return {**asset, 'url':f"/api/note-assets/{asset['id']}"}
+        finally:
+            await file.close()
+
+    @app.get("/api/note-assets/{asset_id}")
+    def note_image(asset_id: str):
+        asset = require('SELECT * FROM note_assets WHERE id=?', (asset_id,))
+        return FileResponse(attachment_path(store(), asset), media_type='image/png')
+
+    @app.get("/api/slides/{slide_id}/note-assets")
+    def saved_note_images(slide_id: str, epoch_id: str):
+        with store().lock:
+            epoch(epoch_id)
+            require('SELECT id FROM slides WHERE id=?', (slide_id,))
+            return [{**asset, 'url':f"/api/note-assets/{asset['id']}"} for asset in store().rows('SELECT * FROM note_assets WHERE slide_id=? ORDER BY created_at', (slide_id,))]
 
     @app.put("/api/slides/{slide_id}/notes/{kind}")
     def save_note(

@@ -94,6 +94,14 @@ def migrate(db):
         db.execute("INSERT INTO schema_migrations VALUES (6,?)", (now(),))
         db.execute("PRAGMA user_version=6")
 
+    if db.execute("PRAGMA user_version").fetchone()[0] < 7:
+        if not db.in_transaction:
+            db.execute("BEGIN IMMEDIATE")
+        db.execute("CREATE TABLE note_assets(id TEXT PRIMARY KEY, slide_id TEXT NOT NULL REFERENCES slides(id), document_id TEXT NOT NULL REFERENCES documents(id), original_name TEXT NOT NULL, sha256 TEXT NOT NULL, width INTEGER NOT NULL CHECK(width>0), height INTEGER NOT NULL CHECK(height>0), created_at TEXT NOT NULL)")
+        db.execute("CREATE INDEX note_assets_document ON note_assets(document_id)")
+        db.execute("INSERT INTO schema_migrations VALUES (7,?)", (now(),))
+        db.execute("PRAGMA user_version=7")
+
 
 class Conflict(Exception):
     def __init__(self, current):
@@ -111,7 +119,7 @@ class Store:
             path.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 6:
+            if version > 7:
                 raise RuntimeError(
                     "This database was created by a newer version of Slide Explain."
                 )

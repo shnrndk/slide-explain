@@ -54,7 +54,7 @@ Configure your key through the app’s **Notebook** menu. No `.env` file, API ke
 This builds the app, runs a packaged smoke check with an empty temporary library, verifies the signature, and writes:
 
 ```text
-dist/Slide-Explain-0.3.0-macos-arm64.zip
+dist/Slide-Explain-0.4.0-macos-arm64.zip
 dist/SHA256SUMS.txt
 ```
 
@@ -153,3 +153,21 @@ Choose **Edit** in My Notes to write Markdown: headings, **bold**, *italic*, lis
 ## Mark PDF pages
 
 Select text directly on a slide to highlight it in yellow, green, blue, or pink, or underline it. The small zoom button beside each slide opens a larger selectable view. Text-based PDFs support selection; scanned pages need OCR first. PDF markings and their text positions are saved in SQLite, included in full backups and readable marking exports, and restored with the original PDFs. The original PDF is preserved unchanged.
+
+## Images, videos and diagrams in notes
+
+Choose **Edit** in My Notes to see the insertion toolbar. Use **Image** to upload a PNG, JPEG, WebP or GIF (15 MB and 20 million pixels maximum), or paste/drop an image into the note editor. GIFs are stored as their first frame. Images are stored locally with the notebook, not in the app bundle. **Saved images** lets you reuse attachments, including an upload whose placement was not saved. Removing an image from a note does not delete its attachment; previous note versions remain recoverable.
+
+Use **YouTube / link** to add a video or website URL. YouTube links show a small **Play video** button and load only when clicked. Links are included in backups, but the videos themselves stay online. External image URLs remain clickable links; upload the image to keep an offline copy in backups.
+
+Use **Diagram** to insert a Mermaid template: flowchart, sequence, mind map, class, state or entity relationship. Edit the fenced Mermaid source in the note to change it. Mermaid rendering is bundled and works offline. Other diagram types supported by Mermaid can also be written directly. For diagrams from other tools, export an image and upload it. For example:
+
+````markdown
+```mermaid
+flowchart TD
+  A[Virtual address] --> B[Page table]
+  B --> C[Physical address]
+```
+````
+
+**Save** returns to the formatted note. Images, Mermaid source, video links, notes, marking data and note history are included in full backup/restore. Readable Markdown exports use relative paths to image attachments inside the ZIP.

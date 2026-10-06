@@ -12,6 +12,7 @@ import {
 import { api, ApiError, json, type Note } from "./api";
 import { RichText } from "./RichText";
 import { AnnotatedText } from "./AnnotatedText";
+import { NoteMediaTools } from './NoteMediaTools';
 export { RichText } from "./RichText";
 
 interface Draft {
@@ -86,6 +87,8 @@ export function Editor({
   const blocked = useRef(state === "conflict");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const savedCallback = useRef(onSaved);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const cursor = useRef<{start:number;end:number}|null>(null);
   savedCallback.current = onSaved;
   const persist = useCallback(
     (text: string, revision: number) => {
@@ -200,6 +203,16 @@ export function Editor({
     clearTimeout(timer.current);
     timer.current = setTimeout(() => void save(), 600);
   }
+  function insertMedia(text: string) {
+    const current=value.current;
+    const position=cursor.current || {start:current.length,end:current.length};
+    const start=Math.min(position.start,current.length), end=Math.min(position.end,current.length);
+    const inserted=`${start?'\n\n':''}${text}\n\n`;
+    change(current.slice(0,start)+inserted+current.slice(end));
+    const next=start+inserted.length;
+    cursor.current={start:next,end:next};
+    requestAnimationFrame(()=>{input.current?.focus();input.current?.setSelectionRange(next,next);});
+  }
   async function history() {
     try {
       setVersions(
@@ -308,22 +321,22 @@ export function Editor({
           <span>Markdown: **bold**, *italic*, - lists, `code`, $math$</span>
           <button type="button" aria-expanded={personalPreview} onClick={() => setPersonalPreview(!personalPreview)}>{personalPreview ? "Hide preview" : "Show preview"}</button>
         </div>}
-        <textarea
+        {note.kind === 'personal' ? <NoteMediaTools slideId={note.slide_id} epoch={epoch} insert={insertMedia}>{events=><textarea
+          ref={input} aria-label="Personal notes" className="personal-input" value={body}
+          onChange={e=>change(e.target.value)} onBlur={()=>void save()}
+          onSelect={e=>{cursor.current={start:e.currentTarget.selectionStart,end:e.currentTarget.selectionEnd};}}
+          placeholder="Write Markdown notes, paste an image, add a link or insert a diagram."
+          {...events}
+        />}</NoteMediaTools> : <textarea
           aria-label={
-            note.kind === "personal" ? "Personal notes" : note.kind === "detail" ? "Detailed explanation" : "Explanation"
+            note.kind === "detail" ? "Detailed explanation" : "Explanation"
           }
-          className={
-            note.kind === "personal" ? "personal-input" : "explanation-input"
-          }
+          className="explanation-input"
           value={body}
           onChange={(e) => change(e.target.value)}
           onBlur={() => void save()}
-          placeholder={
-            note.kind === "personal"
-              ? "Write your notes here. Markdown and math are supported."
-              : "Write your explanation here. Markdown and math are supported."
-          }
-        />
+          placeholder="Write your explanation here. Markdown and math are supported."
+        />}
         {note.kind === "personal" && personalPreview && <div className="personal-markdown-preview" role="region" aria-label="Personal notes Markdown preview">
           <span className="markdown-preview-label">PREVIEW</span>
           {body.trim() ? <RichText body={body}/> : <p className="empty-personal-note">Start writing to preview Markdown.</p>}

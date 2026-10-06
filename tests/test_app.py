@@ -497,7 +497,7 @@ def test_v1_migration_preserves_notes_and_jobs(tmp_path):
     assert store.note('s', 'personal')['revision'] == 4
     assert store.note('s', 'detail')['body'] == ''
     assert store.one('SELECT kind FROM jobs')['kind'] == 'explanation'
-    assert store.one('PRAGMA user_version')['user_version'] == 6
+    assert store.one('PRAGMA user_version')['user_version'] == 7
 
 
 def test_legacy_backup_restores_and_migrates(client, imported, tmp_path):
@@ -511,6 +511,8 @@ def test_legacy_backup_restores_and_migrates(client, imported, tmp_path):
     with zipfile.ZipFile(current) as z:
         z.extractall(stage)
     with sqlite3.connect(stage/'notes.sqlite3') as db:
+        db.execute('DROP TABLE note_assets')
+        db.execute('DELETE FROM schema_migrations WHERE version=7')
         db.execute('DROP TABLE pdf_annotations')
         db.execute('DROP TABLE pdf_text_layers')
         db.execute('DELETE FROM schema_migrations WHERE version=6')
@@ -537,7 +539,7 @@ def test_legacy_backup_restores_and_migrates(client, imported, tmp_path):
     restore_backup(target,legacy)
     assert target.note(slide['id'],'personal')['body']=='Legacy personal note'
     assert target.note(slide['id'],'detail')['revision']==0
-    assert target.one('PRAGMA user_version')['user_version']==6
+    assert target.one('PRAGMA user_version')['user_version']==7
 
 
 def test_details_take_next_slot_before_bulk_without_interrupting(client, imported):
@@ -609,6 +611,8 @@ def test_v2_library_migrates_without_losing_details_or_versions(client, imported
     with client.app.state.store.connect() as source:
         target=sqlite3.connect(root/'notes.sqlite3')
         source.backup(target)
+        target.execute('DROP TABLE note_assets')
+        target.execute('DELETE FROM schema_migrations WHERE version=7')
         target.execute('DROP TABLE pdf_annotations')
         target.execute('DROP TABLE pdf_text_layers')
         target.execute('DELETE FROM schema_migrations WHERE version=6')
