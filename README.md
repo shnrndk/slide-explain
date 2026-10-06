@@ -4,7 +4,7 @@ Study a PDF with each slide on the left and an explanation on the right. Slide E
 
 ## Download and install
 
-1. Download `Slide-Explain-0.2.0-macos-arm64.zip` from the [GitHub releases page](https://github.com/shnrndk/slide-explain/releases/latest).
+1. Download `Slide-Explain-0.4.0-macos-arm64.zip` from the [GitHub releases page](https://github.com/shnrndk/slide-explain/releases/latest).
 2. Unzip it and drag **Slide Explain.app** into **Applications**.
 3. Open the app. Choose **Notebook → Configure API key…**, enter your OpenAI API key, then quit and reopen the app.
 4. Create a notebook and import a PDF. Export PowerPoint or Keynote slides to PDF before importing.

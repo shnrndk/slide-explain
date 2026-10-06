@@ -1,13 +1,13 @@
 # Changelog
 
-## 0.4.0 — Unreleased
+## 0.4.0 — 2026-10-06
 
 - Add image upload, paste/drop and saved-image reuse in personal notes.
 - Add click-to-load YouTube videos and offline Mermaid diagrams with common templates.
 - Preserve note images with history and include attachments, diagram source and video links in validated backups.
 - Keep annotation text offsets stable when diagrams render or video players open.
 
-## 0.3.0 — Unreleased
+## 0.3.0 — 2026-10-06
 
 - Select, highlight, and underline text on PDF pages and in the enlarged slide view.
 - Moved slide enlargement to a small button beside each slide.
